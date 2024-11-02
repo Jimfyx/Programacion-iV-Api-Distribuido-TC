@@ -42,3 +42,31 @@ def crear_tarjeta_credito(id_persona, salario, creador):
         abort(500, f'Error al guardar la tarjeta de credito, se borro la persona creada: {str(e)}')
     return jsonify({"message": "Tarjeta Creada",
                     "numero de tarjeta de credito": new_tc.numero_tc}), 200
+
+def mod_tarjeta_credito(PAN,cvv_tc, fech_exp_tc, id_estado, monto_max):
+    tarjeta_credito_mod = Tarjeta_credito.Tarjeta_credito.query.filter_by(numero_tc=PAN).first()
+    if tarjeta_credito_mod is None:
+        abort(400, "No se encontraron coincidencias con el numero de tarjeta proporcionado")
+
+    if cvv_tc is not None:
+        tarjeta_credito_mod.cvv_tc = cvv_tc
+
+    if fech_exp_tc is not None:
+        try:
+            tarjeta_credito_mod.fech_exp_tc = datetime.strptime(fech_exp_tc, '%Y-%m-%d').date()
+        except ValueError:
+            abort(400, "Formato de fecha invalido. 'YYYY-MM-DD'.")
+
+    if id_estado is not None:
+        tarjeta_credito_mod.id_estado = id_estado
+
+    if monto_max is not None:
+        tarjeta_credito_mod.monto_max = monto_max
+
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        abort(500, f"Error al actualizar la tarjeta de credito: {str(e)}")
+
+    return jsonify({"message": "Tarjeta actualizada"}), 200

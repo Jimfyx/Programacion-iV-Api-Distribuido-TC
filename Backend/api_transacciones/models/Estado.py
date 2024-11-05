@@ -1,6 +1,7 @@
 from config import db
 
 class Estado(db.Model):
+    __bind_key__ = 'banco'
     __tablename__ = 'estado'
 
     id_estado = db.Column(db.Integer, primary_key=True, autoincrement=True)

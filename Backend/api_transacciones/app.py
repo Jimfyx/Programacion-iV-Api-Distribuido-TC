@@ -3,7 +3,7 @@ from datetime import datetime
 from os import abort
 
 from flask import Flask, request
-from sqlalchemy import text
+from sqlalchemy import text, create_engine
 
 from services.crud_tarjeta_credito import crear_tarjeta_credito, mod_tarjeta_credito
 from services.obtener_tc import obtener_tc
@@ -22,7 +22,21 @@ app.config.from_object(Config)
 
 db.init_app(app)
 
+def crear_database(db_uri):
+    engine = create_engine(db_uri.rsplit('/', 1)[0])
+    try:
+        connection = engine.connect()
+        connection.execute("CREATE DATABASE IF NOT EXISTS banco")
+        print("Base de datos creada o ya existente.")
+    except Exception as e:
+        print(f'Error al crear la base de datos: {e}')
+    finally:
+        connection.close()
+
 with app.app_context():
+
+    crear_database(Config.SQLALCHEMY_DATABASE_URI)
+
     try:
         db.session.execute(text('SELECT 1'))
         print('Conexión exitosa con la base de datos')

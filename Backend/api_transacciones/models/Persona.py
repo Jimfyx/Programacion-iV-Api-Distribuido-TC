@@ -3,6 +3,7 @@ from email.policy import default
 from config import db
 
 class Persona(db.Model):
+    __bind_key__ = 'banco'
     __tablename__ = 'persona'
 
     id_persona = db.Column(db.Integer, primary_key=True, autoincrement=True)

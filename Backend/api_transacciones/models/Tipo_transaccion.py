@@ -1,6 +1,7 @@
 from config import db
 
 class Tipo_transaccion(db.Model):
+    __bind_key__ = 'banco'
     __tablename__ = 'tipo_transaccion'
 
     id_tipo_trans = db.Column(db.Integer, primary_key=True, autoincrement=True)

@@ -17,7 +17,6 @@ def get_pika_connection():
         print("No se pudo establecer conexión con RabbitMQ")
         return None
 
-
 class Config:
-    SQLALCHEMY_DATABASE_URI = 'mysql+mysqlconnector://root:toor@192.168.0.17:3306/banco'
+    SQLALCHEMY_DATABASE_URI = 'mysql+mysqlconnector://root:root@192.168.0.17:3306/banco'
     SQLALCHEMY_TRACK_MODIFICATIONS = False

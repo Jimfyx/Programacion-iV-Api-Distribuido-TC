@@ -1,6 +1,7 @@
 from config import db
 
 class Transaccion(db.Model):
+    __bind_key__ = 'banco'
     __tablename__ = 'transaccion'
 
     id_trans = db.Column(db.Integer, primary_key=True, autoincrement=True)

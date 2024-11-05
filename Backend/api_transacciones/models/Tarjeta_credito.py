@@ -1,6 +1,7 @@
 from config import db
 
 class Tarjeta_credito(db.Model):
+    __bind_key__ = 'banco'
     __tablename__ = 'tarjeta_credito'
 
     id_tc = db.Column(db.Integer, primary_key=True, autoincrement=True)

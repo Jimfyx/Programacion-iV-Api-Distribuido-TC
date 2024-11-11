@@ -1,0 +1,73 @@
+services:
+  nginx:
+    build: ./nginx
+    container_name: nginx-balancer
+    ports:
+      - "3000:80"
+    networks:
+      - loadbalancing
+    depends_on:
+      - api_transacciones
+
+
+  mysql-app:
+    image: mysql:latest
+    container_name: mysql-app
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: banco
+      MYSQL_USER: app
+      MYSQL_PASSWORD: app
+    ports:
+      - "3306:3306"
+    volumes:
+      - app_mysql:/var/lib/mysql
+    networks:
+      - loadbalancing
+
+  rabbitmq-app:
+    image: rabbitmq:3-management-alpine
+    container_name: rabbitmq-app
+    ports:
+    - "5672:5672"
+    - "15672:15672"
+    volumes:
+    - rabbitmq_data:/var/lib/rabbitmq
+    - rabbitmq_logs:/var/log/rabbitmq
+    networks:
+      - loadbalancing
+
+  api_transacciones:
+    build: ./api_transacciones
+    environment:
+      - PORT=5000
+    ports:
+      - "5000:5000"
+    networks:
+      - loadbalancing
+    depends_on:
+      - mysql-app
+
+  api_mensajeria:
+    build: ./api_mensajeria
+    container_name: api_mensajeria
+    environment:
+      - PORT=5001
+    ports:
+      - "5001:5001"
+    networks:
+      - loadbalancing
+    depends_on:
+      - rabbitmq-app
+      - mysql-app
+
+volumes:
+  app_mysql:
+
+  rabbitmq_data:
+
+  rabbitmq_logs:
+
+networks:
+  loadbalancing:
+    driver: bridge

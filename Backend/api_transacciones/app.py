@@ -26,12 +26,11 @@ def crear_database(db_uri):
     engine = create_engine(db_uri.rsplit('/', 1)[0])
     try:
         connection = engine.connect()
-        connection.execute("CREATE DATABASE IF NOT EXISTS banco")
+        connection.execute(text("CREATE DATABASE IF NOT EXISTS banco"))
         print("Base de datos creada o ya existente.")
+        connection.close()
     except Exception as e:
         print(f'Error al crear la base de datos: {e}')
-    finally:
-        connection.close()
 
 with app.app_context():
 
@@ -110,6 +109,37 @@ def cargo_tarjeta_credito():
     #prueba enviar los datos a la cola de mensajes
     try:
         sms_sender(tarjeta_credito.numero_tc,'Cargo',body['monto'],body['lugar_consumo'],body['hora_consumo'],id_app)
+    except Exception as e:
+        print(f'Error al procesar la solicitud: {e}')
+    return '', 200
+
+@app.route('/tarjeta-credito/abono/', methods=['POST'])
+def abono_tarjeta_credito():
+    body = request.get_json()
+
+    #validacion de contenido
+    if not body:
+        abort(400, 'Solicitud invalida')
+
+    datos = [body['monto'], body['lugar_consumo'], body['hora_consumo']]
+    for dato in datos:
+        if dato not in datos:
+            abort(400, f"El dato de {dato} es obligatorio")
+
+    #cambia a formato fecha el str que recibe
+    fech_exp_tc_obj = datetime.strptime(body['fech_exp_tc'], '%Y-%m-%d').date()
+
+    #se validan los datos de la tarjeta
+    tarjeta_credito = validar_tarjeta_credito.validar_tc(body['PAN'],body['cvv_tc'],fech_exp_tc_obj)
+
+    #si no se procesa correctamente la tarjeta se aborta la operacion
+    if not tarjeta_credito:
+        abort(400, 'Error al procesar la solicitud')
+
+
+    #prueba enviar los datos a la cola de mensajes
+    try:
+        sms_sender(tarjeta_credito.numero_tc,'Abono',body['monto'],body['lugar_abono'],body['hora_abono'],id_app)
     except Exception as e:
         print(f'Error al procesar la solicitud: {e}')
     return '', 200

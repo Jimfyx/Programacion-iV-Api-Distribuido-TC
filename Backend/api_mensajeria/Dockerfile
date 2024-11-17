@@ -16,4 +16,4 @@ RUN pip install pika
 EXPOSE 5001
 
 #ejecucion del puerto
-CMD [ "python", "app.py" ]
+CMD [ "python", "-u", "app.py" ]

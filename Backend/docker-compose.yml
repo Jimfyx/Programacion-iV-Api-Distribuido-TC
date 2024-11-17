@@ -18,6 +18,11 @@ services:
       MYSQL_DATABASE: banco
       MYSQL_USER: app
       MYSQL_PASSWORD: app
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     ports:
       - "3306:3306"
     volumes:
@@ -28,6 +33,11 @@ services:
   rabbitmq-app:
     image: rabbitmq:3-management-alpine
     container_name: rabbitmq-app
+    healthcheck:
+      test: ["CMD-SHELL", "rabbitmqctl status || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     ports:
     - "5672:5672"
     - "15672:15672"
@@ -41,12 +51,13 @@ services:
     build: ./api_transacciones
     environment:
       - PORT=5000
-    ports:
-      - "5000:5000"
+    deploy:
+      replicas: 3
     networks:
       - loadbalancing
     depends_on:
-      - mysql-app
+      mysql-app:
+        condition: service_healthy
 
   api_mensajeria:
     build: ./api_mensajeria
@@ -58,8 +69,10 @@ services:
     networks:
       - loadbalancing
     depends_on:
-      - rabbitmq-app
-      - mysql-app
+      mysql-app:
+        condition: service_healthy
+      rabbitmq-app:
+        condition: service_healthy
 
 volumes:
   app_mysql:

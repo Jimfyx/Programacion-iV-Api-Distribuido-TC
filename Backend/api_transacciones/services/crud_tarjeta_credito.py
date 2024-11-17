@@ -1,8 +1,7 @@
 import random
 from datetime import datetime, timedelta
-from os import abort
 
-from flask import jsonify
+from flask import jsonify, abort
 from models import Tarjeta_credito
 from config import db, digito_ini_tc, multiplo_monto
 
@@ -70,3 +69,14 @@ def mod_tarjeta_credito(PAN,cvv_tc, fech_exp_tc, id_estado, monto_max):
         abort(500, f"Error al actualizar la tarjeta de credito: {str(e)}")
 
     return jsonify({"message": "Tarjeta actualizada"}), 200
+
+def borrar_tarjeta(tarjeta):
+
+    try:
+        db.session.delete(tarjeta)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        abort(500, f"Error al borrar la tarjeta de crédito: {str(e)}")
+
+    return jsonify({"message": "Tarjeta borrada exitosamente"}), 200

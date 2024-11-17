@@ -20,3 +20,6 @@ def get_pika_connection():
 class Config:
     SQLALCHEMY_DATABASE_URI = 'mysql+mysqlconnector://root:root@mysql-app:3306/banco'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    SQLALCHEMY_BINDS = {
+        'banco': 'mysql+mysqlconnector://root:root@mysql-app:3306/banco'
+    }

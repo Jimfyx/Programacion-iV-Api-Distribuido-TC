@@ -1,3 +1,5 @@
+from datetime import date
+
 from config import db
 
 class Transaccion(db.Model):
@@ -7,8 +9,10 @@ class Transaccion(db.Model):
     id_trans = db.Column(db.Integer, primary_key=True, autoincrement=True)
     id_tipo_trans = db.Column(db.Integer, db.ForeignKey('tipo_transaccion.id_tipo_trans'), nullable=False)
     id_tc = db.Column(db.Integer, db.ForeignKey('tarjeta_credito.id_tc'), nullable=False)
-    fech_trans = db.Column(db.Date, nullable=False)
-    monto_trans = db.Column(db.Numeric, nullable=False)
+    fech_trans = db.Column(db.Date, nullable=False, default=date.today)
+    lugar = db.Column(db.String(50), nullable=False)
+    hora = db.Column(db.Time, nullable=False)
+    monto_trans = db.Column(db.Numeric(10,2), nullable=False)
     created_by = db.Column(db.String(50), nullable=False)
 
     tipo_transaccion = db.relationship('Tipo_transaccion', backref='transacciones', lazy=True)

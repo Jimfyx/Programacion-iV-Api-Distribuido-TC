@@ -17,4 +17,4 @@ RUN pip install pika
 EXPOSE 5000
 
 #ejecucion del puerto
-CMD [ "python", "app.py" ]
+CMD [ "python", "-u", "app.py" ]

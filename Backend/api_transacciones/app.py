@@ -21,7 +21,7 @@ app = Flask(__name__)
 app.config.from_object(Config)
 
 db.init_app(app)
-
+#funcion para crear la base de datos si no existe
 def crear_database(db_uri):
     engine = create_engine(db_uri.rsplit('/', 1)[0])
     try:
@@ -31,7 +31,7 @@ def crear_database(db_uri):
         connection.close()
     except Exception as e:
         print(f'Error al crear la base de datos: {e}')
-
+#ejecuciones iniciales
 with app.app_context():
 
     crear_database(Config.SQLALCHEMY_DATABASE_URI)
@@ -48,14 +48,14 @@ with app.app_context():
 
     except Exception as e:
         print(f'Error en la creación de la base de datos: {e}')
-
+#ruta para obtener una tarjeta de credito especifica o el listado de tarjetas de credito
 @app.route('/tarjeta-credito/', methods=['GET'])
 def obtener_tarjeta_credito():
     if request.args.get('PAN'):
         return obtener_tc(PAN=request.args.get('PAN')).to_dict()
     else:
         return obtener_listado_tc(), 200  # pendiente agregar, page, perpage, paginate
-
+#ruta para registrar una persona y su tarjeta de credito respectiva
 @app.route('/tarjeta-credito/', methods=['POST'])
 def crear_persona_tarjeta_credito():
     body = request.get_json()
@@ -66,7 +66,7 @@ def crear_persona_tarjeta_credito():
 
     id_new_persona, salario_new_persona = crud_persona.crear_persona(body['nombre'], body['apellido'], body['edad'], body['dpi'], body['telefono'], body['direccion'], body['trabajo'], body['salario'], id_app)
     return crear_tarjeta_credito(id_new_persona, salario_new_persona, id_app)
-
+#ruta para modificar una tarjeta de credito
 @app.route('/tarjeta-credito/', methods=['PUT'])
 def modificar_tarjeta_credito():
     body = request.get_json()
@@ -79,16 +79,18 @@ def modificar_tarjeta_credito():
     monto_max = body.get('monto_max')
 
     return mod_tarjeta_credito(body['PAN'], cvv_tc, fech_exp_tc, id_estado, monto_max)
-
+#ruta para borrar una tarjeta de credito
 @app.route('/tarjeta-credito/', methods=['DELETE'])
 def eliminar_tarjeta_credito():
     pan = request.args.get('PAN')
     if not pan:
         return jsonify({"message": "El numero de tarjeta es requerido"}), 400
+    #obtiene el objeto tarjeta
     tarjeta = obtener_tc(PAN=pan)
 
     if not tarjeta:
         return jsonify({"message": "Tarjeta no encontrada"}), 404
+    #realiza una verificacion previa del saldo antes de borrar la tarjeta
     try:
         balance = obtener_balance(tarjeta)
         monto = tarjeta.monto_max
@@ -98,26 +100,25 @@ def eliminar_tarjeta_credito():
         return jsonify({"message": f"El saldo disponible de la tarjeta debe ser {monto}", "saldo disponible": f"{balance}"}), 200
     except Exception as e:
         return jsonify({"message": "Error interno del servidor"}), 500
-
-
+#ruta para obtener el balance disponible de la tarjeta de credito indicada
 @app.route('/tarjeta-credito/balance/', methods=['GET'])
 def balance_tarjeta_credito():
     pan = request.args.get('PAN')
     if not pan:
         return jsonify({"message": "El numero de tarjeta es requerido"}), 400
-
+    #obtiene el objeto tarjeta
     tarjeta = obtener_tc(PAN=pan)
 
     if not tarjeta:
         return jsonify({"message": "Tarjeta no encontrada"}), 404
+    #obtiene el saldo disponible
     try:
         balance = obtener_balance(tarjeta)
         return jsonify({"balance": balance}), 200
     except Exception as e:
         print(f"Error al calcular el balance: {e}")
         return jsonify({"message": "Error interno del servidor"}), 500
-
-
+#ruta que procesa los cargos a una tarjeta de credito
 @app.route('/tarjeta-credito/procesamiento/', methods=['POST'])
 def cargo_tarjeta_credito():
     body = request.get_json()
@@ -131,7 +132,7 @@ def cargo_tarjeta_credito():
         if not body.get(dato):
             return jsonify({"message": f"El dato de {dato} es obligatorio"}), 400
 
-
+    #asgna el monto en una variable
     try:
         monto = body['monto']
     except Exception as e:
@@ -139,7 +140,10 @@ def cargo_tarjeta_credito():
         return jsonify({"message": "Error al cargar el monto"}), 400
 
     #cambia a formato fecha el str que recibe
-    fech_exp_tc_obj = datetime.strptime(body['fech_exp_tc'], '%Y-%m-%d').date()
+    try:
+        fech_exp_tc_obj = datetime.strptime(body['fech_exp_tc'], '%Y-%m-%d').date()
+    except ValueError:
+        return jsonify({"message": "Formato de fecha invalido, formato requerido 'YYYY-MM-DD'"}), 400
 
     #se validan los datos de la tarjeta
     tarjeta_credito = validar_tarjeta_credito.validar_tc(body['PAN'],body['cvv_tc'],fech_exp_tc_obj)
@@ -148,12 +152,13 @@ def cargo_tarjeta_credito():
     if not tarjeta_credito:
         return jsonify({"message": "Error al procesar la solicitud"}), 400
 
+    #obtiene saldo disponible
     try:
         balance = obtener_balance(tarjeta_credito)
     except Exception as e:
         print(f"Error al calcular el balance: {e}")
         return jsonify({"message": "Error interno del servidor"}), 500
-
+    #verifica que el cargo no supere el saldo disponible
     if monto > balance:
         return jsonify({
             "error": "Saldo insuficiente",
@@ -172,7 +177,7 @@ def cargo_tarjeta_credito():
     except Exception as e:
         print(f'Error al procesar la solicitud: {e}')
         return jsonify({"error": "Error al procesar la solicitud"}), 500
-
+#ruta que procesa los abonos a la tarjeta
 @app.route('/tarjeta-credito/abono/', methods=['POST'])
 def abono_tarjeta_credito():
     body = request.get_json()
@@ -186,9 +191,10 @@ def abono_tarjeta_credito():
             return jsonify({"message": f"El dato de {dato} es obligatorio"}), 400
 
     pan = body.get('PAN')
+    #usa la funcion obtener_tc para cargar el objeto tarjeta mediante el pan
     tarjeta = obtener_tc(PAN=pan)
 
-    # si no se procesa correctamente la tarjeta se aborta la operacion
+    # si no se procesa correctamente la tarjeta se regresa un mensaje de error en formato json
     if not tarjeta:
         return jsonify({"message": "Error al verificar el numero de tarjeta de credito"}), 400
 
@@ -202,7 +208,7 @@ def abono_tarjeta_credito():
     except Exception as e:
         print(f'Error al procesar la solicitud: {e}')
         return jsonify({"error": "Error al procesar la solicitud"}), 500
-
+#ruta a implementar para efectuar reversiones en las operaciones
 @app.route('/tarjeta-credito/reversion/', methods=['POST'])
 def reversion_tarjeta_credito():
     body = request.get_json()
@@ -224,12 +230,15 @@ def reversion_tarjeta_credito():
         return jsonify({"message": "Error al cargar el monto"}), 400
 
     #cambia a formato fecha el str que recibe
-    fech_exp_tc_obj = datetime.strptime(body['fech_exp_tc'], '%Y-%m-%d').date()
+    try:
+        fech_exp_tc_obj = datetime.strptime(body['fech_exp_tc'], '%Y-%m-%d').date()
+    except ValueError:
+        return jsonify({"message": "Formato de fecha invalido, formato requerido 'YYYY-MM-DD'"}), 400
 
     #se validan los datos de la tarjeta
     tarjeta_credito = validar_tarjeta_credito.validar_tc(body['PAN'],body['cvv_tc'],fech_exp_tc_obj)
 
-    #si no se procesa correctamente la tarjeta se aborta la operacion
+    #si no se procesa correctamente la tarjeta se regresa un error en formato json
     if not tarjeta_credito:
         return jsonify({"message": "Error al procesar la solicitud"}), 400
 

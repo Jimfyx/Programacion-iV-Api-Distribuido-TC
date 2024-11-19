@@ -25,7 +25,6 @@ def validar_tc(numero_tc, cvv_tc, fech_exp_tc):
             abort(404, f'Fecha invalida  {tarjeta_credito.fech_exp_tc}, {fech_exp_tc}')
 
 
-
         if tarjeta_credito.id_estado != 4:
             abort(404, 'La tarjeta de credito no se encuentra activa')
 
